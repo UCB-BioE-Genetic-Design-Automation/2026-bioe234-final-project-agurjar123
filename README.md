@@ -3,7 +3,7 @@
 **BioEng 134 Final Project**  
 **Author:** Arjun Gurjar (`arjungurjar2006@gmail.com`)
 
-The full team repository lives at [github.com/Bnovey/BioE-134-Final-Proj](https://github.com/Bnovey/BioE-134-Final-Proj) and contains the complete backend pipeline. This submission focuses on my individual scope: the Streamlit frontend, the MCP Chat integration, and the two standalone analysis functions described below.
+The full team repository lives at [github.com/Bnovey/BioE-134-Final-Proj](https://github.com/Bnovey/BioE-134-Final-Proj) and contains the complete backend pipeline. This submission focuses on my individual scope: the Streamlit frontend, the Claude + MCP **client-side** chat integration, and the two standalone analysis functions described below.
 
 ---
 
@@ -17,7 +17,7 @@ CRE-seq (cis-regulatory element sequencing) measures the transcriptional activit
 
 ## Scope of Work
 
-I developed two standalone analysis functions, the Streamlit frontend, and the MCP Chat integration. Backend analysis modules (QC library, activity calling, motif enrichment, stats) were built by teammates and are credited in the Team Contributions section.
+I developed two standalone analysis functions, the Streamlit frontend, and the Claude + MCP chat client. The MCP **server** (`creseq_mcp/server.py`) and its core tool suite were built by Bowman Novey; I added two tools to that server (`tool_variant_delta_scores`, `tool_export_qc_html`) and built the client-side integration that connects the frontend to it. All other backend modules (QC library, activity calling, motif enrichment, stats) were built by teammates and are credited in the Team Contributions section.
 
 ### Standalone Functions
 
@@ -43,12 +43,25 @@ I developed two standalone analysis functions, the Streamlit frontend, and the M
 | Help page | Pipeline diagram, tool reference, file glossary, FAQ |
 | Sidebar | Navigation, session status, two-step reset confirmation |
 
-### MCP Tools (added by me)
+### MCP Tools (added to Bowman's server)
+
+Bowman built the FastMCP server architecture and the core 30-tool suite. I added two tools to that server:
 
 | Tool | What it does |
 |---|---|
 | `tool_variant_delta_scores` | Computes Δlog₂ (mutant − reference) for all variant families; writes `variant_delta_scores.tsv` |
 | `tool_export_qc_html` | Runs all 8 QC checks and writes a self-contained HTML report |
+
+### MCP Chat Client (built by me)
+
+The chat page connects to Bowman's server via the Model Context Protocol stdio transport. The client-side integration I wrote:
+
+| Component | What it does |
+|---|---|
+| `_agent_turn()` | Async loop: discovers available tools, calls `AsyncAnthropic`, routes tool-use blocks back to the MCP server, collects results, loops until `end_turn` |
+| `_run_async(coro)` | Bridges Streamlit's synchronous thread to the asyncio MCP client via a fresh event loop per turn |
+| `_build_system_prompt()` | Injects pipeline context + Agarwal 2025 paper excerpt so the agent understands the domain |
+| `_extract_charts()` | Parses heterogeneous MCP tool result schemas and renders inline Plotly charts (volcano, motif bar) |
 
 ---
 
@@ -334,13 +347,41 @@ The integrated Claude agent changes the interaction pattern from a static report
 
 | Member | Contribution |
 |---|---|
-| Arjun Gurjar | Streamlit frontend (all 5 pages), MCP Chat integration, `format_activity_summary_table`, `export_qc_html`, `tool_variant_delta_scores`, `tool_export_qc_html` |
-| Bowman Novey | Backend pipeline (association, counting, activity calling), MCP server wiring, library QC module, integration |
+| Arjun Gurjar | Streamlit frontend (all 5 pages), Claude + MCP chat client (`_agent_turn`, `_run_async`, `_extract_charts`, `_build_system_prompt`), `format_activity_summary_table`, `export_qc_html`, `tool_variant_delta_scores` and `tool_export_qc_html` (added to Bowman's server) |
+| Bowman Novey | Backend pipeline (association, counting, activity calling), FastMCP server architecture and 30-tool suite, library QC module, pytests |
 | Sarrah Rose | Activity calling module, motif enrichment, plotting |
 | Zach Rao | Stats & RAG tools (normalization, ranking, PubMed/JASPAR/ENCODE search) |
 
 ---
 
-## Citation
+## References
+
+**Experimental method**
 
 Agarwal, H. et al. "Massively parallel characterization of transcriptional regulatory elements." *Nature* (2025). DOI: 10.1038/s41586-024-08430-9
+
+Inoue, F. et al. "A systematic comparison reveals substantial differences in chromosomal versus episomal encoding of enhancer activity." *Genome Research* 27, 38–52 (2017). DOI: 10.1101/gr.212092.116 *(lentiMPRA assay design)*
+
+**Sequence alignment and barcode clustering**
+
+Li, H. "Minimap2: pairwise alignment for nucleotide sequences." *Bioinformatics* 34, 3094–3100 (2018). DOI: 10.1093/bioinformatics/bty191 *(mappy Python bindings used in the association step)*
+
+Zorita, E., Cuscó, P. & Filion, G. "Starcode: sequence clustering based on all-pairs search." *Bioinformatics* 31, 1913–1919 (2015). DOI: 10.1093/bioinformatics/btv053 *(barcode clustering in the association step)*
+
+**Statistics**
+
+Benjamini, Y. & Hochberg, Y. "Controlling the false discovery rate: a practical and powerful approach to multiple testing." *Journal of the Royal Statistical Society B* 57, 289–300 (1995). *(BH-FDR correction applied in activity calling and variant delta scores)*
+
+**Motif databases**
+
+Castro-Mondragon, J. A. et al. "JASPAR 2022: the 9th release of the open-access database of transcription factor binding profiles." *Nucleic Acids Research* 50, D165–D173 (2022). DOI: 10.1093/nar/gkab1113 *(TF motif enrichment via pyjaspar)*
+
+**LLM and tool-use infrastructure**
+
+Anthropic. "Claude API." https://docs.anthropic.com (2024). *(AsyncAnthropic SDK used for the chat agent)*
+
+Model Context Protocol. "MCP specification." https://modelcontextprotocol.io (2024). *(stdio MCP transport connecting the frontend to the tool server)*
+
+**Frontend framework**
+
+Streamlit Inc. "Streamlit: the fastest way to build data apps." https://streamlit.io (2024).
