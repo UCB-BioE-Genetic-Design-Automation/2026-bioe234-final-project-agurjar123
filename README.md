@@ -17,7 +17,7 @@ CRE-seq (cis-regulatory element sequencing) measures the transcriptional activit
 
 ## Scope of Work
 
-I developed two standalone analysis functions, the Streamlit frontend, and the Claude + MCP chat client. The MCP **server** (`creseq_mcp/server.py`) and its core tool suite were built by Bowman Novey; I added two tools to that server (`tool_variant_delta_scores`, `tool_export_qc_html`) and built the client-side integration that connects the frontend to it. All other backend modules (QC library, activity calling, motif enrichment, stats) were built by teammates and are credited in the Team Contributions section.
+I developed two standalone analysis functions, the Streamlit frontend, and the Claude + MCP chat client. The MCP **server** (`creseq_mcp/server.py`) was built by Bowman Novey; I extended it with `tool_variant_delta_scores` and `tool_export_qc_html` and built the client-side integration that connects the frontend to it. All other backend modules (QC library, activity calling, motif enrichment, stats) were built by teammates and are credited in the Team Contributions section.
 
 ### Standalone Functions
 
@@ -45,7 +45,7 @@ I developed two standalone analysis functions, the Streamlit frontend, and the C
 
 ### MCP Tools (added to Bowman's server)
 
-Bowman built the FastMCP server architecture and the core 30-tool suite. I added two tools to that server:
+The MCP server was built by Bowman Novey. I extended it with two tools:
 
 | Tool | What it does |
 |---|---|
@@ -348,7 +348,7 @@ The Chat integration changes how results get interpreted. Without it, a failed Q
 | Member | Contribution |
 |---|---|
 | Arjun Gurjar | Streamlit frontend (all 5 pages), Claude + MCP chat client (`_agent_turn`, `_run_async`, `_extract_charts`, `_build_system_prompt`), `format_activity_summary_table`, `export_qc_html`, `tool_variant_delta_scores` and `tool_export_qc_html` (added to Bowman's server) |
-| Bowman Novey | Backend pipeline (association, counting, activity calling), FastMCP server architecture and 30-tool suite, library QC module, pytests |
+| Bowman Novey | Backend pipeline (association, counting, activity calling), MCP server, library QC module, pytests |
 | Sarrah Rose | Activity calling module, motif enrichment, plotting |
 | Zach Rao | Stats & RAG tools (normalization, ranking, PubMed/JASPAR/ENCODE search) |
 
