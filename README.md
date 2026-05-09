@@ -9,9 +9,7 @@ The full team repository lives at [github.com/Bnovey/BioE-134-Final-Proj](https:
 
 ## Project Overview
 
-CRE-seq (cis-regulatory element sequencing) measures the transcriptional activity of thousands of DNA regulatory elements in parallel using a lentiMPRA assay. It takes raw FASTQ barcode reads and produces activity scores per element with statistical significance, motif annotations, and variant effect sizes. I built the GUI layer: a five-page Streamlit app and a Claude-powered chat interface that sits on top of a 32-tool MCP server.
-
-**Reference:** Agarwal et al. 2025, *Nature* — "Massively parallel characterization of transcriptional regulatory elements." DOI: 10.1038/s41586-024-08430-9
+CRE-seq (cis-regulatory element sequencing) measures the transcriptional activity of thousands of DNA regulatory elements in parallel using a lentiMPRA assay. It takes raw FASTQ barcode reads and produces activity scores per element with statistical significance, motif annotations, and variant effect sizes. I built the GUI layer: a five-page Streamlit app and a Claude-powered chat interface that connects to an MCP tool server (see Agarwal et al. 2025 in References).
 
 ---
 
@@ -152,22 +150,6 @@ html = export_qc_html(qc, output_path="qc_report.html")
 
 ---
 
-## Error Handling
-
-Both functions perform explicit input validation at the top of the function body and raise informative exceptions before any computation runs.
-
-`format_activity_summary_table`:
-- `TypeError`: input is not a `pd.DataFrame` — raised immediately, before any column inspection
-- `ValueError("...log2_ratio...")`: `log2_ratio` column absent — raised after the `oligo_id` rename so the message reflects the normalised column set
-- `ValueError("activity_filter must be one of...")`: invalid filter string — includes the full accepted-values list in the message
-
-`export_qc_html`:
-- `TypeError`: input is not a `dict`
-- `ValueError("...empty...")`: dict has no keys
-- `ValueError("..._report...")`: `"_report"` key absent — raised before any HTML generation begins
-
----
-
 ## Testing
 
 Tests live in `tests/test_activity_table.py` and `tests/test_export_qc_html.py`. Run with:
@@ -189,7 +171,7 @@ pytest tests/test_activity_table.py tests/test_export_qc_html.py -v
 | `test_sort_by_fdr_ascending` | Rows ordered by `fdr` ascending when flag is set |
 | `test_sort_by_fdr_false_preserves_original_order` | Order unchanged when flag is False |
 | `test_renames_oligo_id_to_element_id` | `oligo_id` column renamed automatically |
-| `test_custom_display_cols` | Custom `display_cols` honoured |
+| `test_custom_display_cols` | Custom `display_cols` respected |
 | `test_missing_display_col_is_silently_skipped` | Non-existent column name ignored |
 | `test_does_not_mutate_input` | Input DataFrame is not modified |
 | `test_active_filter_and_sort_combined` | Both filter and sort applied together |
@@ -228,8 +210,8 @@ pytest tests/test_activity_table.py tests/test_export_qc_html.py -v
 
 ```bash
 # Install the MCP package in editable mode
-git clone <repo-url>
-cd BioE-134-Final-Proj
+git clone https://github.com/UCB-BioE-Genetic-Design-Automation/2026-bioe234-final-project-agurjar123.git
+cd 2026-bioe234-final-project-agurjar123
 pip install -e .
 
 # Import standalone functions directly
@@ -264,16 +246,18 @@ cp demo_outputs/*.tsv ~/Desktop/creseq_outputs/
 
 ## MCP Integration
 
-The two functions in `functions/` are also exposed as MCP tools in `creseq_mcp/server.py` (`tool_variant_delta_scores`, `tool_export_qc_html`) and described in JSON wrappers under `wrapper/`. This allows the Claude agent in the Chat page to call them by name.
+The `wrapper/` directory contains JSON function specifications and test prompts for both standalone functions, following the `UCB-BioE-Anderson-Lab/UCB_BioE134_FinalProject` schema.
 
 ```
 wrapper/
-├── activity_table.json       ← MCP wrapper for format_activity_summary_table
-├── export_qc_html.json       ← MCP wrapper for export_qc_html
+├── activity_table.json       ← function spec for format_activity_summary_table
+├── export_qc_html.json       ← function spec for export_qc_html
 └── prompts.json              ← 6 test prompts (3 per function) with expected calls
 ```
 
-Each wrapper follows the `UCB-BioE-Anderson-Lab/UCB_BioE134_FinalProject` schema: `id`, `type`, `name`, `description`, `keywords`, `inputs`, `outputs`, `examples`, `execution_details`.
+Each wrapper includes: `id`, `type`, `name`, `description`, `keywords`, `inputs`, `outputs`, `examples`, `execution_details`.
+
+`export_qc_html` is also callable by the Claude agent via the `tool_export_qc_html` MCP tool registered in `creseq_mcp/server.py`.
 
 ---
 
@@ -295,7 +279,7 @@ FASTQ reads
 4. Activity     ─── log₂(RNA/DNA), z-score vs. negative controls, BH-FDR
                      → activity_results.tsv
 
-Streamlit UI  ◄──────────────────────── MCP Server (32 tools)
+Streamlit UI  ◄──────────────────────── MCP Server
      │                                       │
      └─── Claude (claude-sonnet-4-6) ────────┘
           AsyncAnthropic + stdio MCP client
@@ -309,7 +293,7 @@ Streamlit UI  ◄─────────────────────
 
 Getting the Claude agent to work inside Streamlit was harder than expected. The two frameworks have conflicting execution models: Streamlit is synchronous and rerenders the whole page on every user action, while the Claude SDK and MCP client are fully async. Bridging them required some awkward plumbing, and the result is that the UI freezes while the agent is running. For a quick query that's barely noticeable, but for a longer tool chain it can feel sluggish. A cleaner implementation would run the agent on a background thread, but that adds enough complexity that I left it as-is.
 
-The other tricky part was building the inline chart rendering. Each MCP tool returns results in its own format, and I had no control over those formats since Bowman wrote the tools. Writing the parser that detects which kind of result came back and picks the right chart type meant reading through every tool's output contract one by one.
+The other tricky part was building the inline chart rendering. Each MCP tool returns results in its own format and the schemas aren't standardized — some return a `rows[]` array, some return `top_motifs[]`, some return a file path. Writing the parser that detects which kind of result came back and picks the right chart type meant reading through every tool's output contract one by one.
 
 Session state in Streamlit is also more finicky than it looks. Because the page rerenders on every interaction, anything that needs to persist between clicks has to be explicitly saved and retrieved. The suggested prompt chips were the clearest example: getting a button click to correctly populate and submit the chat input without double-firing took several iterations to get right.
 
@@ -317,7 +301,7 @@ Session state in Streamlit is also more finicky than it looks. Because the page 
 
 I picked Streamlit over React or Flask because we needed something working fast and the likely users (computational biologists) already think in terms of Python scripts and notebooks. Streamlit's model felt close enough to that. The downside is the blocking execution I described above, which would be a real problem if multiple people were using it at once, but for a single-user local tool it's acceptable.
 
-The pipeline trigger blocks the UI intentionally. Making it async would have meant managing subprocesses on a background thread and syncing their output back to session state, which would have required touching Bowman's pipeline code to add callbacks. Not worth it for a project with one user at a time. The status table rows showing per-step timing give enough feedback that the blocking feels okay in practice.
+The pipeline trigger blocks the UI intentionally. Making it async would have meant managing subprocesses on a background thread and syncing output back to session state — more complexity than it was worth for a single-user local tool. The per-step status table with elapsed time gives enough feedback that the blocking feels fine in practice.
 
 The biggest structural choice was treating the Chat page as the main power-user interface and making the QC/Plots page buttons just shortcuts to the same underlying functions. The "Run Motif Enrichment" button in the QC tab calls the same code the agent would call via MCP. That way adding a new analysis tool automatically shows up in both places without duplicating anything.
 
