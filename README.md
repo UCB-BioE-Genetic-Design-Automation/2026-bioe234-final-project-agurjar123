@@ -17,51 +17,41 @@ CRE-seq (cis-regulatory element sequencing) measures the transcriptional activit
 
 ## Scope of Work
 
-I developed two standalone analysis functions, the Streamlit frontend, and the Claude + MCP chat client. The MCP **server** (`creseq_mcp/server.py`) was built by Bowman Novey; I extended it with `tool_variant_delta_scores` and `tool_export_qc_html` and built the client-side integration that connects the frontend to it. All other backend modules (QC library, activity calling, motif enrichment, stats) were built by teammates and are credited in the Team Contributions section.
+The bulk of my contribution is `frontend/app.py` — a ~1300-line Streamlit application that serves as the entire user-facing layer for the CRE-seq pipeline. I also built the Claude agent loop that powers the Chat page, extended the MCP server with two new tools, and extracted two reusable utility functions into the standalone `functions/` module. Backend analysis modules (QC library, activity calling, motif enrichment, stats) and the MCP server were built by teammates and are credited in the Team Contributions section.
 
-### Standalone Functions
+### Streamlit Frontend (`frontend/app.py`)
 
-| Function | File | Purpose |
-|---|---|---|
-| `format_activity_summary_table` | `functions/activity_table.py` | Filter, sort, and prepare a CRE activity DataFrame for display |
-| `export_qc_html` | `functions/export_qc_html.py` | Generate a self-contained HTML QC report from library QC results |
+**Upload page** — orchestrates the full four-step pipeline from a single UI. Users provide paths to their FASTQ files and design manifest, then click one button to run association, DNA counting, RNA counting, and activity calling in sequence. Each step has a live status row showing whether it passed, failed, or is still running, with elapsed time. There's a "skip association" toggle for reruns when the mapping table already exists, and an expandable panel for adjusting activity calling thresholds (FDR cutoff, log₂FC minimum, minimum DNA counts) before running.
 
-### Frontend (Streamlit)
+**QC & Plots page** — a four-tab dashboard. The Library QC tab runs all eight QC checks (barcode complexity, oligo recovery, synthesis error rate, barcode collisions, uniformity, plasmid depth, GC bias, variant family coverage), displays pass/fail status for each, and lets users adjust the pass/fail thresholds before running. Results can be exported as CSV or as a self-contained HTML report. The Activity Plots tab shows a log₂(RNA/DNA) histogram and a volcano plot built from the activity results. The Motif Analysis tab lets users run TF motif enrichment directly from the UI and see results without going through the chat agent. The Variant Effects tab computes Δlog₂ scores (mutant vs. reference) per variant family and displays them in a sortable table.
 
-| Function / Section | What it does |
-|---|---|
-| `_load_results()` | Reads `activity_results.tsv` from disk, normalises column names |
-| `_run_async(coro)` | Runs an async coroutine from Streamlit's synchronous context |
-| `_load_paper_excerpt()` | Loads the Agarwal 2025 paper excerpt for the agent system prompt |
-| `_build_system_prompt()` | Constructs the Claude agent system prompt with pipeline context |
-| `_extract_charts()` | Parses MCP tool results and builds inline Plotly charts (volcano, motif bar) |
-| `_agent_turn()` | Full async Claude + MCP agent loop with tool discovery, execution, and chart extraction |
-| Upload page | 4-step pipeline UI: association → counting → activity, with per-step status tracker, skip-association toggle, activity calling threshold controls |
-| Chat page | Claude + MCP chat interface with suggested prompt chips, tool call log expander |
-| QC & Plots page | 4-tab dashboard: Library QC (8 checks, threshold controls, CSV export), Activity Plots, Motif Analysis (run-from-UI enrichment), Variant Effects (run-from-UI delta scores) |
-| Results page | Summary metrics, live search/filter, computed enrichment summary, CSV download |
-| Help page | Pipeline diagram, tool reference, file glossary, FAQ |
-| Sidebar | Navigation, session status, two-step reset confirmation |
+**Results page** — a searchable, filterable table of all called elements. Includes a live text search on element ID, a dropdown to filter by active/inactive status, and a checkbox to sort by FDR. Above the table, summary statistics (total elements, active count, median log₂ ratio) are computed from the actual data. An expandable enrichment summary shows active rate broken down by designed category and lists the top elements by activity score. The full filtered table can be downloaded as CSV.
 
-### MCP Tools (added to Bowman's server)
+**Chat page** — a Claude-powered conversational interface that can invoke any tool on the MCP server. Users can type free-form questions or click suggested prompt chips ("Run library QC", "Show volcano plot", "Annotate motifs", etc.) to pre-fill common queries. Each assistant response shows an expandable log of which MCP tools were called and what they returned. Charts (volcano plots, motif bar charts) generated by tool calls are rendered inline in the chat thread rather than as separate downloads.
 
-The MCP server was built by Bowman Novey. I extended it with two tools:
+**Help page** — a reference page with a pipeline overview diagram, a table describing every available MCP tool, a glossary of output files, and an FAQ covering common setup and interpretation questions.
+
+**Sidebar** — persistent navigation across all pages, session status indicator showing which pipeline outputs exist, and a two-step reset confirmation that clears all outputs and session state.
+
+**Agent infrastructure** — the Chat page is backed by an async agent loop (`_agent_turn`) that handles tool discovery, routes Claude's tool-use requests to the MCP server over stdio, collects results, and loops until the model signals it's done. Because Streamlit is synchronous, this required bridging the async client into the render thread (`_run_async`). The agent's system prompt (`_build_system_prompt`) is constructed at runtime by loading a paper excerpt from Agarwal et al. 2025 alongside pipeline context, so the agent understands the domain. A separate parsing layer (`_extract_charts`) inspects tool results and renders appropriate Plotly figures inline.
+
+### MCP Server Extensions
+
+The MCP server was built by Bowman Novey. I added two tools to it:
 
 | Tool | What it does |
 |---|---|
 | `tool_variant_delta_scores` | Computes Δlog₂ (mutant − reference) for all variant families; writes `variant_delta_scores.tsv` |
 | `tool_export_qc_html` | Runs all 8 QC checks and writes a self-contained HTML report |
 
-### MCP Chat Client (built by me)
+### Standalone Functions
 
-The chat page connects to Bowman's server via the Model Context Protocol stdio transport. The client-side integration I wrote:
+These two functions are extracted from the frontend logic into a standalone, testable module (`functions/`):
 
-| Component | What it does |
-|---|---|
-| `_agent_turn()` | Async loop: discovers available tools, calls `AsyncAnthropic`, routes tool-use blocks back to the MCP server, collects results, loops until `end_turn` |
-| `_run_async(coro)` | Bridges Streamlit's synchronous thread to the asyncio MCP client via a fresh event loop per turn |
-| `_build_system_prompt()` | Injects pipeline context + Agarwal 2025 paper excerpt so the agent understands the domain |
-| `_extract_charts()` | Parses heterogeneous MCP tool result schemas and renders inline Plotly charts (volcano, motif bar) |
+| Function | File | Purpose |
+|---|---|---|
+| `format_activity_summary_table` | `functions/activity_table.py` | Filter, sort, and prepare a CRE activity DataFrame for display |
+| `export_qc_html` | `functions/export_qc_html.py` | Generate a self-contained HTML QC report from library QC results |
 
 ---
 
