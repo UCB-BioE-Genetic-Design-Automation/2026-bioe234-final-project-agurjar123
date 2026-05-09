@@ -239,6 +239,24 @@ streamlit run frontend/app.py
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+### Data and portability
+
+The app is fully portable — output files are written to `~/Desktop/creseq_outputs/` on whoever's machine is running it (`Path.home()` resolves at runtime, not hardcoded to any specific user).
+
+**To use the pipeline end-to-end you need:**
+
+1. **Real FASTQ files** — the association and counting steps require raw sequencing data from a lentiMPRA run. The file-path fields in the Upload page accept any local path; the placeholder text (e.g. `~/Desktop/creseq_test_data/`) is just a hint, not a hardcoded location.
+2. **`starcode`** — the association step shells out to this C binary for barcode clustering. Install it separately (`brew install starcode` on macOS or build from [github.com/gui11aume/starcode](https://github.com/gui11aume/starcode)). All other dependencies are Python packages covered by `pip install -e .`.
+
+**To demo the UI without running the pipeline:**
+
+Pre-computed outputs are included in `demo_outputs/`. Copy them into the output directory and the Results, QC & Plots, and Chat pages will load immediately:
+
+```bash
+mkdir -p ~/Desktop/creseq_outputs
+cp demo_outputs/*.tsv ~/Desktop/creseq_outputs/
+```
+
 ---
 
 ## MCP Integration
