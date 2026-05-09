@@ -1,0 +1,78 @@
+{
+  "prompts": [
+    {
+      "request": "Show me all active elements sorted by statistical significance",
+      "expected_call": {
+        "function_id": "org.c9.function.bioe_134.format_activity_summary_table",
+        "arguments": {
+          "activity_tsv_path": "~/Desktop/creseq_outputs/activity_results.tsv",
+          "activity_filter": "Active only",
+          "sort_by_fdr": true
+        }
+      },
+      "expected_response": "A filtered table containing only active CRE elements, sorted by FDR ascending so the most statistically significant elements appear first."
+    },
+    {
+      "request": "Filter my results table to only show inactive elements",
+      "expected_call": {
+        "function_id": "org.c9.function.bioe_134.format_activity_summary_table",
+        "arguments": {
+          "activity_tsv_path": "~/Desktop/creseq_outputs/activity_results.tsv",
+          "activity_filter": "Inactive only",
+          "sort_by_fdr": false
+        }
+      },
+      "expected_response": "A table containing only elements that did not meet the activity threshold, useful for identifying background elements."
+    },
+    {
+      "request": "Search for elements whose IDs contain 'ENSR' and sort them by FDR",
+      "expected_call": {
+        "function_id": "org.c9.function.bioe_134.format_activity_summary_table",
+        "arguments": {
+          "activity_tsv_path": "~/Desktop/creseq_outputs/activity_results.tsv",
+          "search_text": "ENSR",
+          "sort_by_fdr": true
+        }
+      },
+      "expected_response": "A filtered table of elements whose IDs contain 'ENSR', sorted by FDR so the most significant ENCODE regulatory elements appear first."
+    },
+    {
+      "request": "Export my library QC results as an HTML report",
+      "expected_call": {
+        "function_id": "org.c9.function.bioe_134.export_qc_html",
+        "arguments": {
+          "mapping_table_path": "~/Desktop/creseq_outputs/mapping_table.tsv",
+          "plasmid_count_path": "~/Desktop/creseq_outputs/plasmid_counts.tsv",
+          "design_manifest_path": "~/data/oligo_design.tsv",
+          "output_path": "~/Desktop/creseq_outputs/qc_report.html"
+        }
+      },
+      "expected_response": "A self-contained HTML file saved to qc_report.html showing an overall pass/fail banner and detailed results for all 8 library QC checks."
+    },
+    {
+      "request": "Did my library pass QC? Give me a shareable HTML summary",
+      "expected_call": {
+        "function_id": "org.c9.function.bioe_134.export_qc_html",
+        "arguments": {
+          "mapping_table_path": "~/Desktop/creseq_outputs/mapping_table.tsv",
+          "plasmid_count_path": "~/Desktop/creseq_outputs/plasmid_counts.tsv",
+          "design_manifest_path": "~/data/oligo_design.tsv",
+          "output_path": "~/Desktop/creseq_outputs/qc_report.html"
+        }
+      },
+      "expected_response": "An HTML report indicating overall pass or fail status across all 8 QC checks, with collapsible per-check detail sections that can be shared with collaborators."
+    },
+    {
+      "request": "Generate a QC report HTML string without writing it to disk",
+      "expected_call": {
+        "function_id": "org.c9.function.bioe_134.export_qc_html",
+        "arguments": {
+          "mapping_table_path": "~/Desktop/creseq_outputs/mapping_table.tsv",
+          "plasmid_count_path": "~/Desktop/creseq_outputs/plasmid_counts.tsv",
+          "design_manifest_path": "~/data/oligo_design.tsv"
+        }
+      },
+      "expected_response": "A self-contained HTML document string starting with <!DOCTYPE html> containing the full QC report, without writing any file to disk."
+    }
+  ]
+}
