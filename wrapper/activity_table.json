@@ -1,0 +1,73 @@
+{
+  "id": "org.c9.function.bioe_134.format_activity_summary_table",
+  "type": "function",
+  "name": "Format Activity Summary Table",
+  "description": "Filter, sort, and prepare a CRE-seq activity results DataFrame for display. Supports substring search on element IDs, filtering by active/inactive status, optional FDR-ascending sort, and column selection. Returns a clean DataFrame ready for tabular display or CSV export.",
+  "keywords": [
+    "cre-seq",
+    "mpra",
+    "lentimpra",
+    "activity",
+    "filter",
+    "sort",
+    "table",
+    "results",
+    "enhancer",
+    "fdr"
+  ],
+  "inputs": [
+    {
+      "name": "activity_tsv_path",
+      "type": "string",
+      "description": "Path to activity_results.tsv produced by the CRE-seq pipeline. Must contain a log2_ratio column."
+    },
+    {
+      "name": "search_text",
+      "type": "string",
+      "description": "Case-insensitive substring to match against element IDs. Leave empty to return all rows.",
+      "required": false
+    },
+    {
+      "name": "activity_filter",
+      "type": "string",
+      "description": "One of 'All', 'Active only', or 'Inactive only'. Filters on the active column when present.",
+      "required": false,
+      "default": "All"
+    },
+    {
+      "name": "sort_by_fdr",
+      "type": "boolean",
+      "description": "If true, sort output rows by FDR ascending (most significant first).",
+      "required": false,
+      "default": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": "object",
+      "description": "Filtered and sorted DataFrame restricted to display columns: element_id, chrom, start, end, dna_counts, rna_counts, log2_ratio, fdr, pval, active, designed_category, chromatin_state, top_motif."
+    }
+  ],
+  "examples": [
+    {
+      "description": "Return all active elements sorted by FDR",
+      "inputs": {
+        "activity_tsv_path": "~/Desktop/creseq_outputs/activity_results.tsv",
+        "activity_filter": "Active only",
+        "sort_by_fdr": true
+      }
+    },
+    {
+      "description": "Search for a specific genomic region",
+      "inputs": {
+        "activity_tsv_path": "~/Desktop/creseq_outputs/activity_results.tsv",
+        "search_text": "ENSR00001"
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "python",
+    "source": "functions/activity_table.py",
+    "execution": "format_activity_summary_table"
+  }
+}

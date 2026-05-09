@@ -1,0 +1,70 @@
+{
+  "id": "org.c9.function.bioe_134.export_qc_html",
+  "type": "function",
+  "name": "Export QC HTML Report",
+  "description": "Generate a self-contained HTML QC report from the output of library_summary_report(). Produces a single HTML document with no external dependencies: a pass/fail banner, a per-check summary table, and collapsible detail sections showing raw scalar metrics for each of the 8 library QC checks.",
+  "keywords": [
+    "cre-seq",
+    "mpra",
+    "qc",
+    "quality-control",
+    "html",
+    "report",
+    "library",
+    "barcode",
+    "export"
+  ],
+  "inputs": [
+    {
+      "name": "mapping_table_path",
+      "type": "string",
+      "description": "Path to mapping_table.tsv produced by the association step."
+    },
+    {
+      "name": "plasmid_count_path",
+      "type": "string",
+      "description": "Path to plasmid_counts.tsv produced by the DNA counting step."
+    },
+    {
+      "name": "design_manifest_path",
+      "type": "string",
+      "description": "Path to the oligo design manifest TSV with element metadata."
+    },
+    {
+      "name": "output_path",
+      "type": "string",
+      "description": "Path where the HTML report will be written. If omitted, the HTML string is returned without writing a file.",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": "string",
+      "description": "Self-contained HTML document string starting with <!DOCTYPE html>. Also writes to output_path if provided."
+    }
+  ],
+  "examples": [
+    {
+      "description": "Run QC and save report to disk",
+      "inputs": {
+        "mapping_table_path": "~/Desktop/creseq_outputs/mapping_table.tsv",
+        "plasmid_count_path": "~/Desktop/creseq_outputs/plasmid_counts.tsv",
+        "design_manifest_path": "~/data/oligo_design.tsv",
+        "output_path": "~/Desktop/creseq_outputs/qc_report.html"
+      }
+    },
+    {
+      "description": "Get the HTML string without saving to file",
+      "inputs": {
+        "mapping_table_path": "~/Desktop/creseq_outputs/mapping_table.tsv",
+        "plasmid_count_path": "~/Desktop/creseq_outputs/plasmid_counts.tsv",
+        "design_manifest_path": "~/data/oligo_design.tsv"
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "python",
+    "source": "functions/export_qc_html.py",
+    "execution": "export_qc_html"
+  }
+}
